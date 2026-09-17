@@ -88,17 +88,34 @@ done
   exit 1
 }
 
-PYTHON="$ROOT/.venv/bin/python"
-if [[ ! -x "$PYTHON" ]]; then
-  echo "首次启动：创建 Python 虚拟环境 .venv"
+has_dependencies() {
+  "$1" -c 'import websockets; from websockets.asyncio.server import serve, broadcast; from websockets.exceptions import ConnectionClosed; assert 14 <= int(websockets.__version__.split(".")[0]) < 18' >/dev/null 2>&1
+}
+
+PYTHON="$(command -v python3)"
+if has_dependencies "$PYTHON"; then
+  echo "复用当前 Python：$PYTHON（依赖已满足，跳过安装）"
+elif [[ -e "$ROOT/.venv" || -L "$ROOT/.venv" ]]; then
+  PYTHON="$ROOT/.venv/bin/python"
+  if [[ ! -x "$PYTHON" ]] || ! has_dependencies "$PYTHON"; then
+    echo "错误：当前 Python 缺少兼容依赖，且已有 .venv 不完整或依赖不兼容。" >&2
+    echo "已保留原 .venv，不安装、覆盖或重建它；请检查该环境，或先激活已有的兼容 Python 环境后重试。" >&2
+    exit 1
+  fi
+  echo "复用项目 Python：$PYTHON（依赖已满足，跳过安装）"
+else
+  echo "当前 Python 缺少兼容依赖，创建独立项目环境 .venv"
   python3 -m venv .venv || {
     echo "无法创建虚拟环境；Ubuntu/Debian 请先安装：sudo apt install python3-venv" >&2
     exit 1
   }
-fi
-if ! "$PYTHON" -c 'import websockets; assert 14 <= int(websockets.__version__.split(".")[0]) < 18' >/dev/null 2>&1; then
-  echo "安装云端依赖；已满足要求的依赖会跳过。"
+  PYTHON="$ROOT/.venv/bin/python"
+  echo "仅在新建的项目环境中安装云端依赖。"
   "$PYTHON" -m pip install -r requirements.txt
+  if ! has_dependencies "$PYTHON"; then
+    echo "错误：项目环境依赖检查失败，未启动服务。" >&2
+    exit 1
+  fi
 fi
 
 echo "[cloud] host=$(hostname) directory=$ROOT branch=$(git branch --show-current 2>/dev/null || echo unknown)"

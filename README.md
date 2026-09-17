@@ -10,8 +10,15 @@
 bash start_services.sh
 ```
 
-首次运行会创建 `.venv` 并安装缺少的 Python 依赖；后续启动会跳过已经满足要求的依赖。
-需要 Python 3 和 venv；若提示缺少 venv，在 Ubuntu/Debian 上先执行
+优先使用当前 `python3`（包括已激活的虚拟环境）；已有兼容的 `websockets` 就直接启动，不创建环境或下载依赖。
+当前 Python 不满足要求时，再复用项目里已有且依赖完整的 `.venv`。
+只有当前 Python 不满足要求、并且项目中没有 `.venv` 时，才新建项目环境并安装依赖。
+
+脚本不会给系统 Python 或任何已有环境安装、升级包，也不会覆盖或重建已有 `.venv`。
+如果已有 `.venv` 残缺或不兼容，且当前 Python 也不可用，会保留原目录并报错；
+可以先激活已有的兼容 Python 环境后再运行。依赖要求见 `requirements.txt`。
+
+仅新建环境时需要 venv；若提示缺少它，在 Ubuntu/Debian 上先执行
 `sudo apt install python3-venv`。
 
 启动成功后会打印两个服务的 PID。关闭 SSH 不影响运行；服务器重启后需要重新启动。
