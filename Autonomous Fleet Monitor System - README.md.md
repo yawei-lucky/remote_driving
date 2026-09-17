@@ -1,3 +1,5 @@
+> 云端实车部署请使用 [README.md](README.md) 的一键启动方式；以下保留原版演示说明。
+
 # Autonomous Fleet Monitor System \- README\.md
 
 
